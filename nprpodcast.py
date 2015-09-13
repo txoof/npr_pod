@@ -3,9 +3,10 @@
 
 changelog='''
 TO DO:
+  * write a method for generating the config file on the first run
   X write lock file after downloading IS SUCCESSFUL
   * add cleanup routine - purge old episodes
-  * add dry run options that work
+  X add dry run options that work
   X write playlist
   X figure out how to make a good data structure for passing segments to the m3u writer
   * talk to Martin re: finding a less brittle method for sorting the programDict
@@ -48,8 +49,8 @@ datetime.datetime.utcnow().replace(tzinfo=oslo).astimezone(eastern)
 '''
 
 
-version='''NPR Podcast Downloader V4.0
-7 December 2014
+version='''NPR Podcast Downloader V4.1.1
+13 September 
 by Aaron Ciuffo (txoof.com)
 released without warranty under GPLV3:
 http://www.gnu.org/licenses/gpl-3.0.html
