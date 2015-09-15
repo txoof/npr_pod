@@ -17,7 +17,7 @@ DONE:
   X figure out how to make a good data structure for passing segments to the m3u writer
 
 Changes:
-4.1.2 - 15 September
+4.1.3 - 15 September
   * Fixed boolean bug introduced by adding dryrun to configuration file
     - options['dryrun'] must be explicitly treated as a boolean throughout 
     - fixed by using getboolean method of ConfigParser
