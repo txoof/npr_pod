@@ -3,16 +3,25 @@
 
 changelog='''
 TO DO:
-  * write a method for generating the config file on the first run
-  X write lock file after downloading IS SUCCESSFUL
+  * talk to Martin re: finding a less brittle method for sorting the programDict
+    - if the index map has fewer elements than then dict, I'm done for
   * add cleanup routine - purge old episodes
+  * add local TZ awareness - Work out proper shows based on time on Eastern Time
+    - http://stackoverflow.com/questions/1398674/python-display-the-time-in-a-different-time-zone
+
+DONE:
+  X write a method for generating the config file on the first run V4.1
+  X write lock file after downloading IS SUCCESSFUL
   X add dry run options that work
   X write playlist
   X figure out how to make a good data structure for passing segments to the m3u writer
-  * talk to Martin re: finding a less brittle method for sorting the programDict
-    - if the index map has fewer elements than then dict, I'm done for
 
 Changes:
+4.1.2 - 15 September
+  * Fixed boolean bug introduced by adding dryrun to configuration file
+    - options['dryrun'] must be explicitly treated as a boolean throughout 
+    - fixed by using getboolean method of ConfigParser
+
 4.1.1 - 13 September 2015
   * Fixing dry run option
   * Changed naming to make playlists sort better on devices 
@@ -322,7 +331,7 @@ def merge_options(args, config):
 
   if not args.dryrun:
     try:
-      options['dryrun']=config.get('options', 'dryrun')
+      options['dryrun']=config.getboolean('options', 'dryrun')
     except:
       options['dryrun']=False
   else:
@@ -354,7 +363,7 @@ def merge_options(args, config):
   #do not try to tag
   if not args.notag:
     try:
-      options['notag']=config.get('options', 'notag')
+      options['notag']=config.getboolean('options', 'notag')
     except:
       options['notag']=False
   else:
@@ -365,7 +374,10 @@ def merge_options(args, config):
 
   # Turn off all chatter except errors
   if args.quiet:
-    options['quiet']=True
+    try:
+      options['quiet']=config.getboolean('options', 'quiet')
+    except:
+      options['quiet']=False
   else:
     options['quiet']=False
 
@@ -519,17 +531,20 @@ def download_program(program, date, options):
   if not 'story' in json_obj['list']:
     print 'no valid JSON data found in ', queryURL
     return(False)
-
-  # make a directory for output
-  if not (os.path.exists(outpath)) and not options['dryrun']:
+  
+    # make a directory for output
+  if not (os.path.exists(outpath)):
     if options['verbose']:
       print 'creating output directory:', outpath
-    try:  
-      os.makedirs(outpath)
-    except Exception, e:
-      print 'problem creating output directory:', e
-      print 'stopping!'
-      return(False)
+    if options['dryrun']==True:
+      print 'Dry run - simulating creation of: ', outpath
+    else:
+      try:  
+        os.makedirs(outpath)
+      except Exception, e:
+        print 'problem creating output directory:', e
+        print 'stopping!'
+        return(False)
 
   #calculate the maximum number of leading zeros needed to pad filenames   
   #excessive, but good practice
@@ -578,20 +593,20 @@ def download_program(program, date, options):
 
 
     # sleep for a random amount of time between each attempted download
-    if options['dryrun']:
+    if options['dryrun']==True:
       randT=0;
     else:
       randT=randint(3,25)
 
     if options['verbose']:
       print 'seconds sleeping: ', randT
-      if options['dryrun']:
+      if options['dryrun']==True:
         print '*'*5, 'DRY RUN', '*'*5
         print 'Simulating download...'
     sleep(randT)
     
     # download the segment
-    if not options['dryrun']:
+    if options['dryrun']==False:
       if download_segment(segment, options['verbose']):
         # initialize the segment dictionary and make a list of everything downloaded
         programDict[segCount]={}
@@ -775,7 +790,7 @@ def write_m3u(programDict, humanDate, program, outpath):
 
 
 def cleanup(options):
-  if options['dryrun']:
+  if options['dryrun']==True:
     if options['verbose'] > 0:
       print 'Dry Run: Simulating cleaning...'
     return(True)
@@ -893,7 +908,7 @@ def main():
   if args.cleanup:
     cleanup(options) 
     return()
-  
+
   #fetch a list of episodes to download
   episodes=download_list(options)
 
