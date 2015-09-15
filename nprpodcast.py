@@ -17,6 +17,8 @@ DONE:
   X figure out how to make a good data structure for passing segments to the m3u writer
 
 Changes:
+4.1.4 - 15 September 
+  * Fixed some typos
 4.1.3 - 15 September
   * Fixed boolean bug introduced by adding dryrun to configuration file
     - options['dryrun'] must be explicitly treated as a boolean throughout 
@@ -208,7 +210,7 @@ def read_config(args):
   if not os.path.isfile(args.config):
     print 'Configuration file not found at: ', args.config
     print 'This script can help create a proper config file with some input from you.'
-    response=raw_input('Create a configuration file? (y/N) ')
+    response=raw_input('Create a configuration file at the above path? (y/N): ')
     if response=='Y' or response=='y':
       try:
         open(args.config, 'w').write(str(''))
@@ -242,7 +244,7 @@ def read_config(args):
   #API Query section
   if not config.has_option('api', 'apikey'):
     print 'Missing NPR api Key. Get yours at: http://www.npr.org/templates/reg/'
-    response=raw_input('Please enter your API key: ')
+    response=raw_input('apikey: ')
     if response=='':
       print 'Cannot continue without API key.'
       exit(0)
@@ -252,16 +254,17 @@ def read_config(args):
 
   if not config.has_option('api', 'baseurl'):
     print 'The default NPR API query URL is: http://api.npr.org/query?'
-    print 'Enter an alternative URL or press ENTER for the default.'
-    response=raw_input('URL: ')
+    print 'To use a different URL please enter it below or press ENTER to use the default.'
+    response=raw_input('baseurl: ')
     configChanges=True
     if response=='':
       response='http://api.npr.org/query?'
     config.set('api', 'baseurl', response)
  
   if not config.has_option('api', 'useragent'):
-    print 'What type of web browser should the request appear to come from?'
-    response=raw_input('(Default: Mozilla/5.0):')
+    print 'Enter your prefered browser user agent string Below. Press ENTER to use the default.'
+    print 'This is OK to skip if you are unsure.'
+    response=raw_input('useragent: ')
     configChanges=True
     if response=='':
       response='Mozilla/5.0'
@@ -269,7 +272,8 @@ def read_config(args):
 
   if not config.has_option('episodes', 'maxeps'):
     print 'What is the maximum number of episodes to attempt to download at a time?'
-    response=raw_input('(Default 2): ')
+    print 'Default: 2'
+    response=raw_input('maxeps: ')
     configChanges=True
     if response=='':
       response=2
@@ -277,7 +281,8 @@ def read_config(args):
 
   if not config.has_option('episodes', 'keep'):
     print 'How many old episodes should be kept?'
-    response=raw_input('(Default 4): ')
+    print 'Default: 4'
+    response=raw_input('keep: ')
     configChanges=True
     if response=='':
       response=4
@@ -285,7 +290,8 @@ def read_config(args):
 
   if not config.has_option('episodes', 'outpath'):
     print 'Where shall the downloaded episodes be kept?'
-    response=raw_input('(Default ~/nprpodcast: ')
+    print 'Default: ~/nprpodcast/' 
+    response=raw_input('outpath: ')
     configChanges=True
     if response=='':
       response='~/nprpodcast'
@@ -298,6 +304,7 @@ def read_config(args):
       configChanges=True
 
   if configChanges:
+    print 'Please see ', args.config, ' for additional options.'
     with open(args.config, 'wb') as configfile:
       config.write(configfile)
 
