@@ -16,6 +16,7 @@ Changes:
 4.1.1 - 13 September 2015
   * Fixing dry run option
   * Changed naming to make playlists sort better on devices 
+  * added system for creating a config file if it is not found
 
 4.1 - 1 Jan 2015
   * NPR is blocking the combination of ip/OS (linux) from downloading.
@@ -128,14 +129,17 @@ def format_filename(s):
 def parse_args():
   #command line options over ride configuration file
   scriptName="nprpodcast"
-  defaultconf=os.path.expanduser('~/.'+scriptName+'/config.ini')
+  defaultConfigPath=os.path.expanduser('~/.'+scriptName)
+  defaultConfig=defaultConfigPath+'/config.ini'
+
+  #defaultconf=os.path.expanduser('~/.'+scriptName+'/config.ini')
 
   #create parser object
   parser = argparse.ArgumentParser(description='Fetch all segments for the most recent NPR news program')
 
   #set the configuraiton file
-  helpstr='default configuration file: ' + defaultconf
-  parser.add_argument('-c', '--config', action='store', type=str, metavar='<path>', help=helpstr, default=defaultconf)
+  helpstr='default configuration file: ' + defaultConfig
+  parser.add_argument('-c', '--config', action='store', type=str, metavar='<path>', help=helpstr, default=defaultConfig)
 
   # user agent string
   parser.add_argument('-a', '--useragent', action='store', type=str, metavar='<user agent>', help='User agent string to use')
@@ -176,8 +180,121 @@ def parse_args():
   return(args)
 
 def read_config(args):
-  config=ConfigParser.ConfigParser()
-  config.read(args.config)
+  #Check to see if the config path exists
+  splitPath=args.config.split('/')
+  configPath='/'
+  if len(splitPath[0])==0:
+    del(splitPath[0])
+  for i in range(len(splitPath)-1):
+    configPath=configPath+splitPath[i]+'/'
+
+  #Create config path it if necessary
+  if not os.path.isdir(configPath):
+    try: 
+      os.makedirs(configPath)
+    except Exception, e:
+      print 'Could not create: ', configPath, e
+
+  # if the config file does not exist, create it 
+  if not os.path.isfile(args.config):
+    print 'Configuration file not found at: ', args.config
+    print 'This script can help create a proper config file with some input from you.'
+    response=raw_input('Create a configuration file? (y/N) ')
+    if response=='Y' or response=='y':
+      try:
+        open(args.config, 'w').write(str(''))
+      except Exception, e:
+        print 'Could not write config file: ', e
+        exit(1)
+    else:
+      print 'Quiting...'
+      exit(0)
+
+  # check with user to help create the configuration file
+
+
+  config=ConfigParser.RawConfigParser()
+  try:
+    config.readfp(open(args.config))
+  except Exception, e:
+    print 'Failed to load configuration file at:', args.config
+    print 'Error: ', e
+    exit(1)
+
+  #check for sections
+  configChanges=False
+  requiredSections=['options', 'api', 'episodes']
+
+  for i in requiredSections:
+    if not config.has_section(i):
+      config.add_section(i)
+      configChanges=True
+
+  #API Query section
+  if not config.has_option('api', 'apikey'):
+    print 'Missing NPR api Key. Get yours at: http://www.npr.org/templates/reg/'
+    response=raw_input('Please enter your API key: ')
+    if response=='':
+      print 'Cannot continue without API key.'
+      exit(0)
+    else:
+      config.set('api', 'apikey', response)
+      configChanges=True
+
+  if not config.has_option('api', 'baseurl'):
+    print 'The default NPR API query URL is: http://api.npr.org/query?'
+    print 'Enter an alternative URL or press ENTER for the default.'
+    response=raw_input('URL: ')
+    configChanges=True
+    if response=='':
+      response='http://api.npr.org/query?'
+    config.set('api', 'baseurl', response)
+ 
+  if not config.has_option('api', 'useragent'):
+    print 'What type of web browser should the request appear to come from?'
+    response=raw_input('(Default: Mozilla/5.0):')
+    configChanges=True
+    if response=='':
+      response='Mozilla/5.0'
+    config.set('api', 'useragent', response)
+
+  if not config.has_option('episodes', 'maxeps'):
+    print 'What is the maximum number of episodes to attempt to download at a time?'
+    response=raw_input('(Default 2): ')
+    configChanges=True
+    if response=='':
+      response=2
+    config.set('episodes', 'maxeps', response)
+
+  if not config.has_option('episodes', 'keep'):
+    print 'How many old episodes should be kept?'
+    response=raw_input('(Default 4): ')
+    configChanges=True
+    if response=='':
+      response=4
+    config.set('episodes', 'keep', response)
+
+  if not config.has_option('episodes', 'outpath'):
+    print 'Where shall the downloaded episodes be kept?'
+    response=raw_input('(Default ~/nprpodcast: ')
+    configChanges=True
+    if response=='':
+      response='~/nprpodcast'
+    config.set('episodes', 'outpath', response)
+
+  additionalOptions=['dryrun', 'notag', 'quiet']
+  for i in additionalOptions:
+    if not config.has_option('options', i):
+      config.set('options', i, 'False')
+      configChanges=True
+
+  if configChanges:
+    with open(args.config, 'wb') as configfile:
+      config.write(configfile)
+
+  #config=ConfigParser.ConfigParser()
+  #config.read(args.config)
+
   ## end read_config
   return(config)
 
@@ -188,7 +305,7 @@ def merge_options(args, config):
 
   if not args.useragent:
     try:
-      options['useragent']=config.get('main', 'useragent')
+      options['useragent']=config.get('api', 'useragent')
     except:
       options['useragent']='Mozilla/5.0'
   else:
@@ -196,7 +313,7 @@ def merge_options(args, config):
 
   if not args.apikey:
     try:
-      options['apikey']=config.get('main', 'apikey')
+      options['apikey']=config.get('api', 'apikey')
     except:
       print 'Cannot continue without an API key.  Exiting'
       exit(1)
@@ -205,7 +322,7 @@ def merge_options(args, config):
 
   if not args.dryrun:
     try:
-      options['dryrun']=config.get('main', 'dryrun')
+      options['dryrun']=config.get('options', 'dryrun')
     except:
       options['dryrun']=False
   else:
@@ -213,7 +330,7 @@ def merge_options(args, config):
 
   if not args.outpath:
     try:
-      options['outpath']=str(config.get('main', 'outpath'))
+      options['outpath']=str(config.get('episodes', 'outpath'))
     except:
       options['outpath']='./'
   else:
@@ -227,7 +344,7 @@ def merge_options(args, config):
   #number of episodes to keep
   if not args.keep:
     try:
-      options['keep']=int(config.get('main', 'keep'))
+      options['keep']=int(config.get('episodes', 'keep'))
     except:
       #default: 4 episodes
       options['keep']=4
@@ -237,7 +354,7 @@ def merge_options(args, config):
   #do not try to tag
   if not args.notag:
     try:
-      options['notag']=config.get('main', 'notag')
+      options['notag']=config.get('options', 'notag')
     except:
       options['notag']=False
   else:
@@ -261,7 +378,7 @@ def merge_options(args, config):
 
   if not args.baseurl:
     try:
-      options['baseurl']=str(config.get('main', 'baseurl'))
+      options['baseurl']=str(config.get('api', 'baseurl'))
     except:
       # default
       options['baseurl']='http://api.npr.org/query?'
@@ -270,7 +387,7 @@ def merge_options(args, config):
 
   if not args.useragent:
     try:
-      options['useragent']=str(config.get('main', 'useragent'))
+      options['useragent']=str(config.get('api', 'useragent'))
     except:
       # default
       options['useragent']='Mozilla/5.0'
@@ -658,6 +775,10 @@ def write_m3u(programDict, humanDate, program, outpath):
 
 
 def cleanup(options):
+  if options['dryrun']:
+    if options['verbose'] > 0:
+      print 'Dry Run: Simulating cleaning...'
+    return(True)
   dnLoadLog=options['dnloadlog']
 
   # open down load log
