@@ -61,7 +61,7 @@ datetime.datetime.utcnow().replace(tzinfo=oslo).astimezone(eastern)
 '''
 
 
-version='''NPR Podcast Downloader V4.1.1
+version='''NPR Podcast Downloader V4.1
 13 September 
 by Aaron Ciuffo (txoof.com)
 released without warranty under GPLV3:
