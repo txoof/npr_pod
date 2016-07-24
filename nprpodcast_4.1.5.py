@@ -698,7 +698,6 @@ def download_segment(segment, verbose):
 
 
 def tag(segment, verbose):
-  print "FOOOOOOOOOOOOOOO"
   if verbose:
     print 'tagging segment:', segment['segNum'], segment['title']
   
