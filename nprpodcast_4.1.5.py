@@ -18,6 +18,9 @@ DONE:
   X figure out how to make a good data structure for passing segments to the m3u writer
 
 Changes:
+
+4.1.5 - 22 July 2016 
+  * switched to mutagen.mp4.MP4 from .EasyMP4 
 4.1.4 - 15 September 
   * Fixed some typos
 4.1.3 - 15 September
@@ -63,7 +66,7 @@ datetime.datetime.utcnow().replace(tzinfo=oslo).astimezone(eastern)
 
 
 version='''NPR Podcast Downloader V4.1
-13 September 
+
 by Aaron Ciuffo (txoof.com)
 released without warranty under GPLV3:
 http://www.gnu.org/licenses/gpl-3.0.html
@@ -840,6 +843,11 @@ def cleanup(options):
     print 'Old episodes may need to be removed manually'
     return(False)
 
+  if options['verbose'] > 0:
+    print 'download log contains: '
+    for i in filenames:
+      print i
+
   # Martin Muggli is responsible for this next section.  It is MAGIC
   for filename in filenames:
     match_obj = filename_re.search(filename)
@@ -901,7 +909,8 @@ def cleanup(options):
   else:
     if options['verbose']:
       print 'No cleaning needed'
-
+  
+  #This appears to always return true unless it errors out.  This may be part of the problem.
   return(True)
 
   
