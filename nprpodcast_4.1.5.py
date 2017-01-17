@@ -19,6 +19,9 @@ DONE:
 
 Changes:
 
+
+4.2   - 8 October 2016 
+  * adding option to fall back to screen-scraping of HTML; NPR is making changes to API
 4.1.5 - 22 July 2016 
   * switched to mutagen.mp4.MP4 from .EasyMP4 
 4.1.4 - 15 September 
@@ -169,6 +172,8 @@ def parse_args():
   # do a dry run without downloading
   parser.add_argument('-d', '--dryrun', action='store_true', default=False, help='dry run - do not download')
 
+  parser.add_argument('-f', '--fallback', action='store_true', default=False, help='Fall back to screen scraping instead of JSON from API interface (works without key)')
+
   # maximum episodes to keep
   parser.add_argument('-k', '--keep', action='store', type=int, metavar='<i>', help='keep <i> old episodes')
 
@@ -303,7 +308,7 @@ def read_config(args):
       response='~/nprpodcast'
     config.set('episodes', 'outpath', response)
 
-  additionalOptions=['dryrun', 'notag', 'quiet']
+  additionalOptions=['dryrun', 'notag', 'quiet', 'fallback']
   for i in additionalOptions:
     if not config.has_option('options', i):
       config.set('options', i, 'False')
@@ -349,6 +354,15 @@ def merge_options(args, config):
       options['dryrun']=False
   else:
     options['dryrun']=args.dryrun
+
+  if not args.fallback:
+    try:
+      options['fallback']=config.getboolean('options', 'fallback')
+    except:
+      options['fallback']=False
+  else:
+    options['fallback']=args.fallback
+      
 
   if not args.outpath:
     try:
@@ -927,6 +941,10 @@ def main():
 
   #load non-standard python modules
   options=load_modules(options)
+
+  if args.fallback:
+    print "faaaaaaaling back"
+
 
   if args.version:
     print version
