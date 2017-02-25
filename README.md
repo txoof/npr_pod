@@ -1,15 +1,19 @@
-# npr_pod
+# podcastdownload
 Released under the GPL V3
-aaron.ciuffo@gmail.com
+reach me at gmail aaron.ciuffo 
 
-This is an experiement to learn how to work with JSON and the NPR
-API.
+Podcastify many NPR programs easily. 
 
-This script uses the NPR (National Public Radio) API to find recent
-news programs and download the relevant audio files for listening.
+run the script with the -C option to create a configuration file:
+$ ./podcastdownload.py -C 
 
-An NPR API key is necessary to use this software.  Register for an 
-API key here: http://www.npr.org/templates/reg/
+The configuration file will be created in ~/.podcastdownload.ini 
 
-Setup:
+See the configuration file for more help in setting up and adding additional shows.
 
+If you decide to use this script to scrape NPR program audio from the NPR web pages
+please consider donating to your local NPR affiliate. The bandwidth is not free and 
+producing great content (clearly you enjoy it or you wouldn't be scraping it) costs 
+money as well.
+
+You can donate at https://npr.org/donate
