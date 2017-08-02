@@ -1,8 +1,3 @@
-
-# coding: utf-8
-
-# In[78]:
-
 #!/usr/bin/env python
 # Copyright 2016 Aaron ciuffo
 
@@ -1164,15 +1159,4 @@ def main(argv=None):
 
 if __name__ == '__main__':
     main()
-
-
-# In[69]:
-
-get_ipython().magic(u'run -d podcastdownload.ipynb')
-
-
-
-# In[70]:
-
-import pdb
 
