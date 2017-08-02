@@ -32,11 +32,12 @@ from random import SystemRandom
 
 
 
-# In[ ]:
+# In[81]:
 
 releaseNotes = '''Release Notes
 V 5.1
 * Added "Artist" tag to NPR Segments
+* Added date to album name
 V5.0
 * Rewrite and cleanup 
  - Cleanup of variables
@@ -78,7 +79,7 @@ V5.0
 #   - test all configuration options (remove options, sections, and otherwise break the config file) 
 # 
 
-# In[48]:
+# In[82]:
 
 def loadModules():
     '''load non standard python modules'''
@@ -119,7 +120,7 @@ def loadModules():
     return(True)
 
 
-# In[49]:
+# In[83]:
 
 def div(num = 10, char = '*'):
     '''
@@ -136,7 +137,7 @@ def div(num = 10, char = '*'):
         return(str(char))
 
 
-# In[61]:
+# In[84]:
 
 class Episode():
     '''Podcast episode object'''
@@ -468,7 +469,7 @@ class Episode():
                 # write the appropriate tags
                 audio['title'] = segment.title
                 audio['tracknumber'] = str(segment.number)
-                audio['album'] = segment.programName
+                audio['album'] = segment.programName + '-' + self.showDate
                 audio['artist'] = segment.artist
                 
                 try:
@@ -545,7 +546,7 @@ class Episode():
         return(removed)   
 
 
-# In[72]:
+# In[85]:
 
 class NPREpisode(Episode, object):
     '''NPR program episode object
@@ -702,7 +703,7 @@ class NPREpisode(Episode, object):
             
 
 
-# In[73]:
+# In[86]:
 
 class Segment():
     '''One segment of a podcast'''
@@ -728,7 +729,7 @@ class Segment():
         self.downloaded = False 
 
 
-# In[74]:
+# In[87]:
 
 class showConfig():
     '''Configuration object for a downloadable show'''
@@ -891,7 +892,7 @@ class showConfig():
                     
 
 
-# In[77]:
+# In[88]:
 
 def main(argv=None):
     ############### init variables 
