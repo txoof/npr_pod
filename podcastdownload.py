@@ -1,8 +1,3 @@
-
-# coding: utf-8
-
-# In[80]:
-
 #!/usr/bin/env python
 # Copyright 2016 Aaron ciuffo
 
