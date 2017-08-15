@@ -1,3 +1,8 @@
+
+# coding: utf-8
+
+# In[80]:
+
 #!/usr/bin/env python
 # Copyright 2016 Aaron ciuffo
 
@@ -49,7 +54,9 @@ V5.0
 # # TO DO
 # ## Downloading
 #  * add command line option to download a show at a specific URL
+#  
 # ## Configuration
+#  * Add configuration option to download album art from a specific URL and shove it into each episode folder
 # 
 # ## Completed
 #  * General rewrite and cleanup 
@@ -682,7 +689,7 @@ class NPREpisode(Episode, object):
                 logging.warning('failed to find artist data: %s', e)
             
             if len(artist)<1:
-                logging.warning('no artist data provided in JSON; using default: %s', defaultArtist)
+                logging.info('no artist data provided in JSON; using default: %s', defaultArtist)
                 artist = defaultArtist
                     
             number = int(key)+1 # set the human readable segment number
