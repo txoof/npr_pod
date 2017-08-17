@@ -32,11 +32,12 @@ from random import SystemRandom
 
 
 
-# In[ ]:
+# In[11]:
 
 releaseNotes = '''Release Notes
 V 5.1
 * Added "Artist" tag to NPR Segments
+* Added date to album name
 V5.0
 * Rewrite and cleanup 
  - Cleanup of variables
@@ -47,7 +48,10 @@ V5.0
 
 # # TO DO
 # ## Downloading
+#  * add User-Agent string to NPREpisode class getEpisode https://docs.python.org/2/library/urllib2.html
 #  * add command line option to download a show at a specific URL
+#  * flawed logic causes the def download to return "false" if any segment does not download causing no m3u to be written later
+#  * add feature to retry failed segments up to N times
 #  
 # ## Configuration
 #  * Add configuration option to download album art from a specific URL and shove it into each episode folder
@@ -80,7 +84,7 @@ V5.0
 #   - test all configuration options (remove options, sections, and otherwise break the config file) 
 # 
 
-# In[48]:
+# In[12]:
 
 def loadModules():
     '''load non standard python modules'''
@@ -121,7 +125,7 @@ def loadModules():
     return(True)
 
 
-# In[49]:
+# In[13]:
 
 def div(num = 10, char = '*'):
     '''
@@ -138,7 +142,7 @@ def div(num = 10, char = '*'):
         return(str(char))
 
 
-# In[61]:
+# In[14]:
 
 class Episode():
     '''Podcast episode object'''
@@ -170,6 +174,7 @@ class Episode():
         self.name = name # str
         self.programURL = programURL # str
         self.segments = [] # list
+        self.segmentsFailed = [] #
         self.showDate = showDate # str
         self.outputBasePath = self._slash(outputBasePath) # str
         self.outputShowPath = self.outputBasePath + self._slash(self._slugify(self.name))
@@ -276,7 +281,7 @@ class Episode():
             bool: True
         '''
         
-        logging.info('opening m3u playlist: %s', self.m3u)
+        logging.info('opening m3u playlist: %s for writing', self.m3u)
         if filename:
             self.setm3u(filename)
         
@@ -317,10 +322,10 @@ class Episode():
             timeout (real): time in seconds to wait for a download to complete before timing out
         
         Returns: 
-            bool: True for successful download of all segments
+            bool: True for successful download of one or more segments
         '''
         
-        success = True
+        success = False
         lockfile = self.outputPath + '.' + programName + '.lock'
         logging.info('downloading program: %s', self.name)
         
@@ -353,6 +358,7 @@ class Episode():
         logging.debug('dryrun = %s', dryrun)
         if dryrun:
             logging.info('downloads will be simulated')
+        # begin downloading
         for segment in self.segments:
             # update the path for the current segment
             filePath = self.outputPath + segment.filename
@@ -369,8 +375,9 @@ class Episode():
                 except urllib2.URLError as e:
                     logging.warning('could not download segment number: %s', segment.number)
                     logging.warning('error: %s; timeout: %s', e, timeout)
-                    success = False
                     continue
+                # if one segment was downloaded report a successful download
+                success=True
             
             logging.info('writing file to %s', filePath)
             
@@ -452,33 +459,36 @@ class Episode():
         logging.info('tagging segments')
         
         for segment in self.segments:
-            logging.debug('title: %s,\n tracknumber: %s,\n album: %s,\n artist: %s', segment.title, segment.number, 
-                          segment.programName, segment.artist)
+            if segment.downloaded:
+                logging.debug('title: %s,\n tracknumber: %s,\n album: %s,\n artist: %s', segment.title, segment.number, 
+                              segment.programName, segment.artist)
 
-            filename = self.outputPath + segment.filename
-            try:
-                # find the file extension and guess at the type based on the extension
-                filetype = re.search('\.(\w+$)', filename).group(1)
-            except:
-                filetype = None
-
-            if filetype.lower() in taggers: # check to see if this is a known filetype
-                logging.debug('tagging %s', filename)
-                myTagger = taggers[filetype] # create a tagger object with the appropriate mutagen module
-                audio = myTagger(filename) 
-                
-                # write the appropriate tags
-                audio['title'] = segment.title
-                audio['tracknumber'] = str(segment.number)
-                audio['album'] = segment.programName
-                audio['artist'] = segment.artist
-                
+                filename = self.outputPath + segment.filename
                 try:
-                    audio.save()
-                except Exception as e:
-                    logging.error('could not write tags for: %s\n%s', filename, e)        
+                    # find the file extension and guess at the type based on the extension
+                    filetype = re.search('\.(\w+$)', filename).group(1)
+                except:
+                    filetype = None
+
+                if filetype.lower() in taggers: # check to see if this is a known filetype
+                    logging.debug('tagging %s', filename)
+                    myTagger = taggers[filetype] # create a tagger object with the appropriate mutagen module
+                    audio = myTagger(filename) 
+
+                    # write the appropriate tags
+                    audio['title'] = segment.title
+                    audio['tracknumber'] = str(segment.number)
+                    audio['album'] = segment.programName + '-' + self.showDate
+                    audio['artist'] = segment.artist
+
+                    try:
+                        audio.save()
+                    except Exception as e:
+                        logging.error('could not write tags for: %s\n%s', filename, e)        
+                else:
+                    logging.info('could not tag, unknown filetype: %s', filename)
             else:
-                logging.info('could not tag, unknown filetype: %s', filename) 
+                logging.warn('segment %s not downloaded; skipping tagging', segment.title)
                 
     def cleanUp(self, dryrun = False, lockfile = '*.lock', keep = None):
         '''
@@ -547,7 +557,7 @@ class Episode():
         return(removed)   
 
 
-# In[72]:
+# In[15]:
 
 class NPREpisode(Episode, object):
     '''NPR program episode object
@@ -704,7 +714,7 @@ class NPREpisode(Episode, object):
             
 
 
-# In[73]:
+# In[16]:
 
 class Segment():
     '''One segment of a podcast'''
@@ -730,7 +740,7 @@ class Segment():
         self.downloaded = False 
 
 
-# In[74]:
+# In[17]:
 
 class showConfig():
     '''Configuration object for a downloadable show'''
@@ -893,7 +903,7 @@ class showConfig():
                     
 
 
-# In[77]:
+# In[19]:
 
 def main(argv=None):
     ############### init variables 
@@ -939,6 +949,7 @@ def main(argv=None):
                 'loglevel': [configParser.get, 'ERROR'],
                 'logfile' : [configParser.getboolean, False],
                 'useragent': [configParser.get, '']}
+    
     
     # sample show for creating a configuration file
     sampleShow = {'showname' : 'SAMPLE SHOW: All Things Considered',
@@ -1044,7 +1055,7 @@ def main(argv=None):
     # look for each required option and set to default specified above if not found
     # container for all default settings read from config file
     default = {}
-    
+        
     for key in required:
         try:
             #default[key] = configParser.get(mainSection, key)
@@ -1054,6 +1065,7 @@ def main(argv=None):
             logging.error('using default value: %s = %s', key, required[key][1])
             default[key] = required[key][1]     
     
+    
     for key in optional:
         try:
             default[key] = optional[key][0](mainSection, key)
@@ -1062,7 +1074,8 @@ def main(argv=None):
             logging.info('this is OK!')
             logging.info('using default value: %s', optional[key][1])
             default[key] = optional[key][1]     
-
+            
+    
     ############### MERGE COMMANDLINE AND CONFIGURATION FILES TOGETHER
     # add in commandline arguments
     parser = argparse.ArgumentParser(parents=[cmdlineParser])
@@ -1140,13 +1153,15 @@ def main(argv=None):
     ############### DOWNLOAD EACH SHOW
     logging.info('%s downloading episodes', div(10, '-'))
     logging.debug('found %s episodes', len(downloadEpisodes))
+
     for episode in downloadEpisodes:
+                
         logging.info('%s downloading: %s', div(5), episode.name)
-        #if eachEp.download(parserArgs.dryrun, timeout = parserArgs.timeout, 
-                          # useragent = randomGenerator.choice(parserArgs.useragent.split('|'))):
         if episode.download(dryrun = parserArgs.dryrun, timeout = parserArgs.timeout,
                         useragent = randomGenerator.choice(parserArgs.useragent.split('|'))):
+            
             if not parserArgs.dryrun:
+                logging.debug('attempting to write M3U file')
                 episode.writeM3U()
                 episode.tagSegments()
             logging.info('success!')
@@ -1161,4 +1176,9 @@ def main(argv=None):
 
 if __name__ == '__main__':
     main()
+
+
+# In[ ]:
+
+from IPython.core.debugger import Tracer; Tracer()() 
 
