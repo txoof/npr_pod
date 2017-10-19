@@ -1,3 +1,8 @@
+
+# coding: utf-8
+
+# In[1]:
+
 #!/usr/bin/env python
 # Copyright 2016 Aaron ciuffo
 
@@ -32,7 +37,7 @@ from random import SystemRandom
 
 
 
-# In[11]:
+# In[2]:
 
 releaseNotes = '''Release Notes
 V 5.1
@@ -84,7 +89,7 @@ V5.0
 #   - test all configuration options (remove options, sections, and otherwise break the config file) 
 # 
 
-# In[12]:
+# In[3]:
 
 def loadModules():
     '''load non standard python modules'''
@@ -125,7 +130,7 @@ def loadModules():
     return(True)
 
 
-# In[13]:
+# In[4]:
 
 def div(num = 10, char = '*'):
     '''
@@ -142,7 +147,7 @@ def div(num = 10, char = '*'):
         return(str(char))
 
 
-# In[14]:
+# In[5]:
 
 class Episode():
     '''Podcast episode object'''
@@ -372,7 +377,7 @@ class Episode():
 # #                     audioFile = urlopen(segment.audioURL, timeout = timeout).read()
                     request = urllib2.Request(segment.audioURL, headers = {'User-Agent' : useragent})
                     audioFile = urllib2.urlopen(request, timeout = timeout).read()
-                except urllib2.URLError as e:
+                except (urllib2.URLError, ValueError) as e:
                     logging.warning('could not download segment number: %s', segment.number)
                     logging.warning('error: %s; timeout: %s', e, timeout)
                     continue
@@ -557,7 +562,7 @@ class Episode():
         return(removed)   
 
 
-# In[15]:
+# In[6]:
 
 class NPREpisode(Episode, object):
     '''NPR program episode object
@@ -714,7 +719,7 @@ class NPREpisode(Episode, object):
             
 
 
-# In[16]:
+# In[7]:
 
 class Segment():
     '''One segment of a podcast'''
@@ -740,7 +745,7 @@ class Segment():
         self.downloaded = False 
 
 
-# In[17]:
+# In[8]:
 
 class showConfig():
     '''Configuration object for a downloadable show'''
@@ -903,7 +908,7 @@ class showConfig():
                     
 
 
-# In[19]:
+# In[9]:
 
 def main(argv=None):
     ############### init variables 
@@ -1176,4 +1181,9 @@ def main(argv=None):
 
 if __name__ == '__main__':
     main()
+
+
+# In[10]:
+
+#from IPython.core.debugger import Tracer; Tracer()() 
 
