@@ -1,8 +1,3 @@
-
-# coding: utf-8
-
-# In[1]:
-
 #!/usr/bin/env python
 # Copyright 2016 Aaron ciuffo
 
@@ -18,7 +13,7 @@ programName = 'podcastdownload'
 
 # Imports
 from datetime import datetime # for time stuff
-import pytz
+#import pytz
 import logging # logging library
 #from urllib2 import urlopen # standard library for interfacing with web resources
 import urllib2 # standard library for interfacing with web resources 
@@ -37,9 +32,12 @@ from random import SystemRandom
 
 
 
-# In[2]:
+# In[3]:
+
 
 releaseNotes = '''Release Notes
+V 5.2
+* Added html headers to HTML download method for dealing with cookies
 V 5.1
 * Added "Artist" tag to NPR Segments
 * Added date to album name
@@ -59,7 +57,9 @@ V5.0
 #  * add feature to retry failed segments up to N times
 #  
 # ## Configuration
+#  * Add configuration check - offer to create a configuration
 #  * Add configuration option to download album art from a specific URL and shove it into each episode folder
+#  * Add configuration option to specify cookie paramaters or files
 # 
 # ## Completed
 #  * General rewrite and cleanup 
@@ -89,7 +89,8 @@ V5.0
 #   - test all configuration options (remove options, sections, and otherwise break the config file) 
 # 
 
-# In[3]:
+# In[4]:
+
 
 def loadModules():
     '''load non standard python modules'''
@@ -130,7 +131,8 @@ def loadModules():
     return(True)
 
 
-# In[4]:
+# In[5]:
+
 
 def div(num = 10, char = '*'):
     '''
@@ -147,7 +149,8 @@ def div(num = 10, char = '*'):
         return(str(char))
 
 
-# In[5]:
+# In[11]:
+
 
 class Episode():
     '''Podcast episode object'''
@@ -562,7 +565,8 @@ class Episode():
         return(removed)   
 
 
-# In[6]:
+# In[45]:
+
 
 class NPREpisode(Episode, object):
     '''NPR program episode object
@@ -578,10 +582,11 @@ class NPREpisode(Episode, object):
     
     
     def __init__(self, name = 'unknown', programURL = None, outputBasePath = './', m3u ='playlist.m3u', 
-                 downloadLog = 'download.log', keep = 3):
+                 downloadLog = 'download.log', keep = 3, htmlheaders = {}):
         super(NPREpisode, self).__init__(name = name, programURL = programURL, outputBasePath = outputBasePath, 
                                          m3u = m3u, downloadLog = downloadLog, keep = keep)
         self.jsonData = None
+        self.htmlheaders = htmlheaders
 
     def recentEpisodes(self):
         '''Identify the most recent episodes
@@ -589,6 +594,16 @@ class NPREpisode(Episode, object):
         '''
         pass
         
+    def addHeader(self, key, string):
+        '''
+        Add headers to be used when making url request
+        Attributes set here:
+            self.htmlheaders (dictionary) - {'Name': 'Content string'} optional headers to send with request
+        Paramaters:
+            key (str) - header key name
+            string (str) - header content
+        '''
+        self.htmlheaders[key] = string
         
     def getepisode_API():
         '''
@@ -605,7 +620,7 @@ class NPREpisode(Episode, object):
             self.showDate (str) - YYYY-MM-DD formatted string
             self.name (str) - human readable show name 
             self.segments (:obj: Segment) - episode segments are populated and added
-
+            
         Returns: 
             bool: True if episode information is scraped from the HTML, False otherwise
         '''
@@ -627,9 +642,14 @@ class NPREpisode(Episode, object):
         # if no valid extension is set elsewhere
         output_extension = int((datetime.now() - datetime.utcfromtimestamp(0)).total_seconds())
         
-       
+        # FIXME - build a header for the request here including the appropriate cookie data
+        opener = urllib2.build_opener()
+        for header in self.htmlheaders:
+            logging.debug('adding html header: {0}: {1}'.format(header, self.htmlheaders[header]))
+            opener.addheaders.append((header, self.htmlheaders[header]))
         try: # fetch the full show HTML
-            programHTML = urllib2.urlopen(self.programURL).read()
+            programHTML = opener.open(self.programURL).read()
+#            programHTML = urllib2.urlopen(self.programURL).read()
         except Exception as e:
             logging.warning('could not fetch episode information from %s' % self.programURL)
             logging.error(e)
@@ -637,6 +657,7 @@ class NPREpisode(Episode, object):
         logging.debug('HTML retrieved successfully')
         
         # find the show date and record it 
+        # FIXME - Wrap this in a try: in the event that there is no "showdate"
         self.showDate = re.search(search_showDate, programHTML).group(1)
         
         if len(self.showDate) < 1:
@@ -719,7 +740,8 @@ class NPREpisode(Episode, object):
             
 
 
-# In[7]:
+# In[8]:
+
 
 class Segment():
     '''One segment of a podcast'''
@@ -745,7 +767,8 @@ class Segment():
         self.downloaded = False 
 
 
-# In[8]:
+# In[9]:
+
 
 class showConfig():
     '''Configuration object for a downloadable show'''
@@ -908,7 +931,8 @@ class showConfig():
                     
 
 
-# In[9]:
+# In[ ]:
+
 
 def main(argv=None):
     ############### init variables 
@@ -1147,7 +1171,7 @@ def main(argv=None):
     for show in shows:
         # create an NPREpisode object and populate
         logging.debug('%s parsing configuration for show: [%s]', div(5), show.showName)
-        myEpisode = NPREpisode(name = show.showName, outputBasePath = parserArgs.outputpath, keep = show.programs)
+        myEpisode = NPREpisode(name = show.showName, outputBasePath = parserArgs.outputpath, keep = show.programs, htmlheaders = {'Cookie': 'trackingChoice=true; choiceVersion=1'})
         #myEpisode.outputBasePath = parserArgs.outputpath
         myEpisode.programURL = show.url
         if myEpisode.getepisode_HTML():
@@ -1183,7 +1207,8 @@ if __name__ == '__main__':
     main()
 
 
-# In[10]:
+# In[46]:
+
 
 #from IPython.core.debugger import Tracer; Tracer()() 
 
