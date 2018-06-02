@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2016 Aaron ciuffo
 
-version = '''NPR Podcast Downloader V5.1
+version = '''NPR Podcast Downloader V5.2
 
 by Aaron Ciuffo (txoof.com)
 released without warranty under GPLV3:
@@ -32,8 +32,7 @@ from random import SystemRandom
 
 
 
-# In[3]:
-
+# In[2]:
 
 releaseNotes = '''Release Notes
 V 5.2
@@ -50,6 +49,8 @@ V5.0
 
 
 # # TO DO
+# ## Other
+#  * Add command line option to show HTML that was downloaded for debugging
 # ## Downloading
 #  * add User-Agent string to NPREpisode class getEpisode https://docs.python.org/2/library/urllib2.html
 #  * add command line option to download a show at a specific URL
@@ -62,6 +63,7 @@ V5.0
 #  * Add configuration option to specify cookie paramaters or files
 # 
 # ## Completed
+#  * Move configuration to ~/.config/podcastdownload/config.ini
 #  * General rewrite and cleanup 
 #   - Move variables to one place
 #   - reconsider some of the messier loops
@@ -89,8 +91,7 @@ V5.0
 #   - test all configuration options (remove options, sections, and otherwise break the config file) 
 # 
 
-# In[4]:
-
+# In[3]:
 
 def loadModules():
     '''load non standard python modules'''
@@ -131,8 +132,7 @@ def loadModules():
     return(True)
 
 
-# In[5]:
-
+# In[4]:
 
 def div(num = 10, char = '*'):
     '''
@@ -149,8 +149,7 @@ def div(num = 10, char = '*'):
         return(str(char))
 
 
-# In[11]:
-
+# In[5]:
 
 class Episode():
     '''Podcast episode object'''
@@ -565,8 +564,7 @@ class Episode():
         return(removed)   
 
 
-# In[45]:
-
+# In[6]:
 
 class NPREpisode(Episode, object):
     '''NPR program episode object
@@ -658,7 +656,11 @@ class NPREpisode(Episode, object):
         
         # find the show date and record it 
         # FIXME - Wrap this in a try: in the event that there is no "showdate"
-        self.showDate = re.search(search_showDate, programHTML).group(1)
+        try:
+            self.showDate = re.search(search_showDate, programHTML).group(1)
+        except AttributeError as e:
+            logging.warning('no date found in HTML; setting to 2000-01-01')
+            self.showDate = '2000-01-01'
         
         if len(self.showDate) < 1:
             logging.warning('no valid showDate found')
@@ -740,8 +742,7 @@ class NPREpisode(Episode, object):
             
 
 
-# In[8]:
-
+# In[7]:
 
 class Segment():
     '''One segment of a podcast'''
@@ -767,8 +768,7 @@ class Segment():
         self.downloaded = False 
 
 
-# In[9]:
-
+# In[8]:
 
 class showConfig():
     '''Configuration object for a downloadable show'''
@@ -931,8 +931,7 @@ class showConfig():
                     
 
 
-# In[ ]:
-
+# In[10]:
 
 def main(argv=None):
     ############### init variables 
@@ -959,7 +958,7 @@ def main(argv=None):
     ############### CONFIGURATION VARIABLES
     # default configuration file
     homeDir = os.path.expanduser('~')
-    cfgFile = homeDir + '/.podcastdownload.ini' 
+    cfgFile = homeDir + '/.config/podcastdownload/config.ini' 
     
     # set the configuration parser
     configParser = ConfigParser.SafeConfigParser()
@@ -981,10 +980,15 @@ def main(argv=None):
     
     
     # sample show for creating a configuration file
-    sampleShow = {'showname' : 'SAMPLE SHOW: All Things Considered',
-              'url' : 'http://www.npr.org/programs/all-things-considered/',
-              'fetchmethod' : 'NPR_HTML',
-              'programs' : 2}
+    sampleShow = {
+            'showname' : 'SAMPLE SHOW: All Things Considered',
+            'url' : 'http://www.npr.org/programs/all-things-considered/',
+            'fetchmethod' : 'NPR_HTML',
+            'programs' : 2,
+            '#loglevel': 'level of logging: "CRITICAL", "WARN", "ERROR", "DEBUG"',
+            'loglevel': 'ERROR',
+            '#useragent': 'list of strings to send with request separated with a "|"',
+            'useragent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; FSL 7.0.6.01001)|Mozilla/5.0 (Windows NT 6.0) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/13.0.782.112 Safari/535.1'}
     
     ############### SHOW/DOWNLOAD VARIABLES
     # list of show configurations found in configuration file
@@ -1171,6 +1175,7 @@ def main(argv=None):
     for show in shows:
         # create an NPREpisode object and populate
         logging.debug('%s parsing configuration for show: [%s]', div(5), show.showName)
+        # FIXME - cookie html header is hard coded here; add option to read from file; config file; etc.
         myEpisode = NPREpisode(name = show.showName, outputBasePath = parserArgs.outputpath, keep = show.programs, htmlheaders = {'Cookie': 'trackingChoice=true; choiceVersion=1'})
         #myEpisode.outputBasePath = parserArgs.outputpath
         myEpisode.programURL = show.url
@@ -1208,7 +1213,6 @@ if __name__ == '__main__':
 
 
 # In[46]:
-
 
 #from IPython.core.debugger import Tracer; Tracer()() 
 
